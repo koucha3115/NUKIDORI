@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NUKIDORI（ヌキドリ）</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="lobby-page">
+  <div class="lobby-container">
+    <h1 class="title">🐦 NUKIDORI</h1>
+    <p class="subtitle">ヌキドリ ― 鳥を集めろ、ハゲタカには気をつけろ</p>
+
+    <div class="card-box">
+      <h2>名前を入力</h2>
+      <input type="text" id="playerName" placeholder="あなたの名前" maxlength="12" autocomplete="off">
+
+      <div class="button-row">
+        <button id="createBtn" class="btn btn-primary">ルームを作る</button>
+      </div>
+
+      <hr class="divider">
+
+      <h2>ルームに参加</h2>
+      <input type="text" id="roomIdInput" placeholder="ルームID（6文字）" maxlength="6" autocomplete="off"
+             style="text-transform:uppercase">
+      <div class="button-row">
+        <button id="joinBtn" class="btn btn-secondary">参加する</button>
+      </div>
+    </div>
+
+    <div id="lobbyError" class="error-msg" style="display:none"></div>
+
+    <!-- 待機室 -->
+    <div id="waitingRoom" style="display:none">
+      <div class="card-box">
+        <h2>待機室</h2>
+        <p>ルームID：<strong id="displayRoomId"></strong>
+          <button id="copyBtn" class="btn btn-tiny">コピー</button>
+        </p>
+        <p class="hint">このURLまたはルームIDを友達に教えてください</p>
+        <ul id="playerList" class="player-list"></ul>
+        <button id="startBtn" class="btn btn-primary" style="display:none">ゲームスタート（3人以上）</button>
+        <p id="waitMsg" class="hint">ホストがゲームを開始するまで待ってください</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="lobby.js"></script>
+</body>
+</html>

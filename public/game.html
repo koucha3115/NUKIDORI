@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NUKIDORI - ゲーム中</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="game-page">
+
+  <!-- ヘッダー -->
+  <header class="game-header">
+    <span class="header-title">🐦 NUKIDORI</span>
+    <span id="deckInfo" class="header-info">山札: -- 枚</span>
+    <button id="forceEndBtn" class="btn btn-tiny btn-danger" style="display:none">強制終了</button>
+  </header>
+
+  <!-- 他プレイヤーエリア -->
+  <section id="othersArea" class="others-area"></section>
+
+  <!-- 中央エリア：掲げられたカード -->
+  <section class="center-area">
+    <div id="drawnCardDisplay" class="drawn-card-wrap" style="display:none">
+      <p class="drawn-label">引かれたカード</p>
+      <div id="drawnCard" class="card card-large"></div>
+    </div>
+
+    <!-- フェーズ別アクションボタン -->
+    <div id="actionArea" class="action-area">
+
+      <!-- drawing: 手番プレイヤーがカードを引く -->
+      <div id="phaseDrawing" class="phase-block" style="display:none">
+        <p class="phase-msg">あなたの手番です</p>
+        <button id="drawBtn" class="btn btn-primary btn-large">カードを引く 🎴</button>
+      </div>
+
+      <!-- asking: 聞かれているプレイヤーが回答 -->
+      <div id="phaseAsking" class="phase-block" style="display:none">
+        <p class="phase-msg" id="askingMsg"></p>
+        <div id="askingButtons" style="display:none">
+          <button id="takeBtn" class="btn btn-success btn-large">もらう 🙋</button>
+          <button id="passBtn" class="btn btn-secondary btn-large">いらん 🙅</button>
+        </div>
+        <p id="waitingAsk" class="hint" style="display:none">他のプレイヤーが回答中...</p>
+      </div>
+
+      <!-- deciding: 手番プレイヤーが「渡す or 自分で取る」を選ぶ -->
+      <div id="phaseDeciding" class="phase-block" style="display:none">
+        <p class="phase-msg">「もらう」と言ったプレイヤーに渡しますか？</p>
+        <div id="takerButtons" class="taker-buttons"></div>
+        <button id="takeSelfBtn" class="btn btn-warning btn-large">自分で取る</button>
+      </div>
+
+      <!-- pushing: 全員いらん → 押し付け先を選ぶ -->
+      <div id="phasePushing" class="phase-block" style="display:none">
+        <p class="phase-msg">全員「いらん」！誰に押し付ける？</p>
+        <div id="pushButtons" class="push-buttons"></div>
+      </div>
+
+      <!-- result: 結果表示 → 次のターンへ（手番プレイヤーが押す） -->
+      <div id="phaseResult" class="phase-block" style="display:none">
+        <p class="phase-msg" id="resultMsg"></p>
+        <button id="nextTurnBtn" class="btn btn-primary" style="display:none">次のターンへ →</button>
+        <p id="waitingResult" class="hint" style="display:none">手番プレイヤーが次へ進めます...</p>
+      </div>
+
+      <!-- 手番待ち -->
+      <div id="phaseWaiting" class="phase-block" style="display:none">
+        <p class="phase-msg hint" id="waitingMsg">他のプレイヤーの手番です...</p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 自分のエリア -->
+  <section class="my-area">
+    <div class="my-board-label">あなたの盤面（<span id="myBoardCount">0</span>羽）</div>
+    <div id="myBoard" class="my-board"></div>
+  </section>
+
+  <!-- ログ -->
+  <section class="log-area">
+    <ul id="logList" class="log-list"></ul>
+  </section>
+
+  <!-- ゲームオーバーモーダル -->
+  <div id="gameoverModal" class="modal" style="display:none">
+    <div class="modal-content">
+      <h2 id="gameoverTitle">ゲーム終了！</h2>
+      <p id="gameoverMsg"></p>
+      <button id="restartBtn" class="btn btn-primary" style="display:none">もう一度プレイ</button>
+      <p id="waitRestart" class="hint" style="display:none">ホストがゲームをリセットするまで待ってください</p>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
