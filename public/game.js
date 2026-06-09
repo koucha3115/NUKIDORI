@@ -30,7 +30,6 @@ const phases = {
 let isHost = false;
 let lastState = null;
 
-// ゲーム画面では reconnectGame で再接続
 socket.emit('reconnectGame', { roomId, name: myName }, ({ ok, error }) => {
   if (error) {
     alert('ルームへの再接続に失敗しました。ロビーに戻ります。');
@@ -48,13 +47,18 @@ function render(s) {
   deckInfo.textContent = `山札: ${s.deckCount} 枚`;
 
   const me = s.players.find(p => p.isMe);
-  // ホスト = players配列の最初のプレイヤーと名前が一致
   isHost = s.players[0]?.name === myName;
 
   renderOthers(s);
 
   if (me) {
     myBoardCount.textContent = me.boardCount;
+    // ダメージ表示
+    const dmgEl = document.getElementById('myDamage');
+    if (dmgEl) {
+      const hearts = ['🩶','🩶','🩶'].map((_, i) => i < me.damage ? '💔' : '🩶').join(' ');
+      dmgEl.textContent = `ダメージ: ${hearts}`;
+    }
     myBoard.innerHTML = me.board.map(() =>
       `<span class="chip chip-unknown" title="自分の盤面は見えません">❓</span>`
     ).join('') || '<span style="color:#555; font-size:0.8rem">（まだ鳥がいません）</span>';
@@ -100,8 +104,8 @@ function renderOthers(s) {
     ].filter(Boolean).join(' ');
 
     const badges = [
-      isTurn    ? '<span class="turn-badge">手番</span>'   : '',
-      p.warning ? '<span class="warning-badge">⚠️ 危険</span>' : '',
+      isTurn ? '<span class="turn-badge">手番</span>' : '',
+      p.warning ? `<span class="warning-badge">💔×${p.damage}</span>` : '',
     ].join('');
 
     const chips = p.board.map(c => chipHTML(c)).join('')
@@ -118,6 +122,7 @@ function renderOthers(s) {
 
 function chipHTML(card) {
   if (card.id === 'unknown') return `<span class="chip chip-unknown">❓</span>`;
+  if (card.id === 'vulture') return `<span class="chip chip-vulture" title="${card.name}">${card.emoji}</span>`;
   return `<span class="chip" title="${card.name}">${card.emoji}</span>`;
 }
 
@@ -167,17 +172,23 @@ function showPhase(s, me) {
   } else if (s.phase === 'result') {
     phases.result.style.display = 'flex';
 
-    // lastResult があれば詳細なメッセージを表示
     let msg = '';
     if (s.lastResult) {
       const r = s.lastResult;
       const isMe = r.toId === me?.id;
       const toLabel = isMe ? 'あなた' : r.toName;
-      if (r.exploded) {
-        msg = `💥 ${toLabel} の盤面がリセット！`;
+
+      // カード名（自分で取った or 他人への場合は表示、引いた本人への押し付けでは？）
+      const cardLabel = r.revealCard
+        ? `${r.cardEmoji}${r.cardName}`
+        : `❓`;
+
+      if (r.resetOccurred) {
+        msg = `${cardLabel} → 💥 ${toLabel} が3ダメージ！盤面リセット！`;
+      } else if (r.damageDone > 0) {
+        msg = `${cardLabel} → ⚠️ ${toLabel} に${r.damageTotal}ダメージ！`;
       } else {
-        msg = `${r.cardEmoji}${r.cardName} が ${toLabel} の盤面へ`;
-        if (isMe) msg += `（あなたの盤面：${me.boardCount}羽）`;
+        msg = `${cardLabel} が ${toLabel} の盤面へ`;
       }
     } else {
       msg = s.log[s.log.length - 1] ?? '';

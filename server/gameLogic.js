@@ -1,14 +1,15 @@
 // カード定義
 const BIRDS = [
-  { id: 'sparrow',  name: 'スズメ',     emoji: '🐦', count: 6 },
-  { id: 'crow',     name: 'カラス',     emoji: '🐧', count: 5 },
-  { id: 'owl',      name: 'フクロウ',   emoji: '🦉', count: 4 },
-  { id: 'hawk',     name: 'タカ',       emoji: '🦅', count: 3 },
-  { id: 'peacock',  name: 'クジャク',   emoji: '🦚', count: 2 },
+  { id: 'sparrow',  name: 'スズメ',       emoji: '🐦', count: 6 },
+  { id: 'crow',     name: 'カラス',       emoji: '🐧', count: 5 },
+  { id: 'owl',      name: 'フクロウ',     emoji: '🦉', count: 4 },
+  { id: 'hawk',     name: 'タカ',         emoji: '🦅', count: 3 },
+  { id: 'peacock',  name: 'クジャク',     emoji: '🦚', count: 2 },
   { id: 'phoenix',  name: 'フェニックス', emoji: '🔥', count: 1 },
 ];
 const VULTURE = { id: 'vulture', name: 'ハゲタカ', emoji: '💀', count: 4 };
 const ALL_BIRD_IDS = BIRDS.map(b => b.id);
+const MAX_DAMAGE = 3;
 
 function buildDeck() {
   const deck = [];
@@ -34,9 +35,9 @@ function createGame(playerIds) {
       id,
       board: [],
       boardCount: 0,
+      damage: 0,       // 0〜3（3でリセット）
     })),
     deck: buildDeck(),
-    discardPile: [],
     phase: 'waiting',
     currentTurn: 0,
     drawnCard: null,
@@ -45,14 +46,15 @@ function createGame(playerIds) {
     responses: {},
     takerIds: [],
     log: [],
-    lastResult: null, // { cardId, cardName, cardEmoji, toName, exploded }
+    lastResult: null,
   };
 }
 
 function drawCard(game) {
   if (game.deck.length === 0) {
-    game.deck = shuffle(game.discardPile);
-    game.discardPile = [];
+    // 山札切れは起きにくいが念のためリシャッフル（全員の盤面カードは除外しない）
+    addLog(game, '山札をシャッフルしました');
+    game.deck = buildDeck();
   }
   game.drawnCard = game.deck.shift();
   game.phase = 'asking';
@@ -78,50 +80,66 @@ function respond(game, playerId, choice) {
   game.askIndex++;
 
   if (game.askIndex >= game.askOrder.length) {
-    if (game.takerIds.length > 0) {
-      game.phase = 'deciding';
-    } else {
-      game.phase = 'pushing';
-    }
+    game.phase = game.takerIds.length > 0 ? 'deciding' : 'pushing';
   }
   return game;
 }
 
 function giveCard(game, toPlayerId, playerNames) {
-  return placeCard(game, toPlayerId, playerNames);
+  return placeCard(game, toPlayerId, playerNames, false);
 }
 
 function takeCardSelf(game, playerNames) {
   const currentPlayer = game.players[game.currentTurn];
-  return placeCard(game, currentPlayer.id, playerNames);
+  // 自分で取る = 結果フェーズでカードが可視化される
+  return placeCard(game, currentPlayer.id, playerNames, true);
 }
 
 function pushCard(game, toPlayerId, playerNames) {
-  return placeCard(game, toPlayerId, playerNames);
+  return placeCard(game, toPlayerId, playerNames, false);
 }
 
-function placeCard(game, toPlayerId, playerNames) {
+// revealToSelf: 引いた本人が自分でカードを取ったとき true → lastResult で可視化
+function placeCard(game, toPlayerId, playerNames, revealToSelf) {
   const target = game.players.find(p => p.id === toPlayerId);
   const card = game.drawnCard;
   const toName = (playerNames && playerNames[toPlayerId]) ?? toPlayerId;
+  const isSelf = game.players[game.currentTurn].id === toPlayerId;
 
-  addLog(game, `${cardEmoji(card)}${cardName(card)} が ${toName} の盤面へ`);
+  addLog(game, `${cardEmoji(card)}${isSelf && !revealToSelf ? '？' : cardName(card)} が ${toName} の盤面へ`);
 
-  let exploded = false;
+  target.board.push(card);
+  target.boardCount = target.board.length;
+
+  let damageDone = 0;
+  let resetOccurred = false;
+  let damageReason = '';
+
+  // ダメージ判定
   if (card === 'vulture') {
-    exploded = true;
-    game.discardPile.push(card);
-    addLog(game, `💀 ハゲタカ！ ${toName} の盤面がリセット！`);
-    resetBoard(game, target);
+    damageDone = 1;
+    damageReason = 'ハゲタカ入手';
   } else {
-    target.board.push(card);
-    target.boardCount = target.board.length;
     const sameCount = target.board.filter(c => c === card).length;
-    if (sameCount >= 3) {
-      exploded = true;
-      addLog(game, `💥 ${cardName(card)} が3羽！ ${toName} の盤面がリセット！`);
-      game.discardPile.push(...target.board);
-      resetBoard(game, target);
+    if (sameCount >= 2) {
+      damageDone = 1;
+      damageReason = `${cardName(card)} が2枚揃い`;
+    }
+  }
+
+  if (damageDone > 0) {
+    target.damage += damageDone;
+    if (target.damage >= MAX_DAMAGE) {
+      // リセット：手持ちカードを山札に返してシャッフル
+      resetOccurred = true;
+      game.deck.push(...target.board);
+      game.deck = shuffle(game.deck);
+      addLog(game, `💥 ${damageReason}！ ${toName} が3ダメージ → 盤面リセット！`);
+      target.board = [];
+      target.boardCount = 0;
+      target.damage = 0;
+    } else {
+      addLog(game, `⚠️ ${damageReason}！ ${toName} に${target.damage}ダメージ（あと${MAX_DAMAGE - target.damage}でリセット）`);
     }
   }
 
@@ -133,25 +151,23 @@ function placeCard(game, toPlayerId, playerNames) {
     cardEmoji: cardEmoji(card),
     toId: toPlayerId,
     toName,
-    exploded,
+    revealCard: !isSelf || revealToSelf, // 自分で取った or 他人に渡したときは表示
+    damageDone,
+    damageTotal: target.damage,
+    resetOccurred,
   };
 
-  if (!exploded) {
+  // 勝利判定（リセットなし + 6種類揃い）
+  if (!resetOccurred) {
     const uniqueKinds = new Set(target.board.filter(c => ALL_BIRD_IDS.includes(c)));
     if (uniqueKinds.size >= 6) {
       game.phase = 'gameover';
       game.winner = toPlayerId;
       addLog(game, `🎉 ${toName} が6種類を揃えて勝利！`);
-      return game;
     }
   }
 
   return game;
-}
-
-function resetBoard(game, player) {
-  player.board = [];
-  player.boardCount = 0;
 }
 
 function nextTurn(game) {
@@ -199,13 +215,16 @@ function addLog(game, msg) {
 }
 
 function stateForPlayer(game, playerId, playerNames) {
+  const turner = game.players[game.currentTurn];
+  const isDrawer = turner?.id === playerId;
+
   return {
     phase: game.phase,
-    currentTurnId: game.players[game.currentTurn]?.id,
+    currentTurnId: turner?.id,
+    // 引いた本人は ?, 他の人は実物が見える
     drawnCard: (() => {
-      const turner = game.players[game.currentTurn];
       if (!game.drawnCard) return null;
-      if (turner?.id === playerId) return { id: 'unknown', name: '？', emoji: '❓' };
+      if (isDrawer) return { id: 'unknown', name: '？', emoji: '❓' };
       return { id: game.drawnCard, name: cardName(game.drawnCard), emoji: cardEmoji(game.drawnCard) };
     })(),
     askOrder: game.askOrder,
@@ -218,26 +237,18 @@ function stateForPlayer(game, playerId, playerNames) {
       name: playerNames[p.id] ?? p.id,
       isMe: p.id === playerId,
       boardCount: p.boardCount,
+      // 自分の盤面は隠す
       board: p.id === playerId
         ? p.board.map(() => ({ id: 'unknown', name: '？', emoji: '❓' }))
         : p.board.map(c => ({ id: c, name: cardName(c), emoji: cardEmoji(c) })),
-      warning: hasWarning(p.board),
+      damage: p.damage,
+      warning: p.damage >= 1,
     })),
     log: game.log,
     lastResult: game.lastResult,
     winner: game.winner ?? null,
     winnerName: game.winner ? (playerNames[game.winner] ?? game.winner) : null,
   };
-}
-
-function hasWarning(board) {
-  const counts = {};
-  for (const c of board) {
-    if (c === 'vulture') continue;
-    counts[c] = (counts[c] ?? 0) + 1;
-    if (counts[c] >= 2) return true;
-  }
-  return false;
 }
 
 module.exports = {
