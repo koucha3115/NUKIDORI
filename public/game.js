@@ -143,6 +143,16 @@ function showPhase(s, me) {
                : `${askeePlayer?.name ?? '？'} に聞いています...`;
     document.getElementById('askingButtons').style.display = isAskee ? 'flex' : 'none';
     document.getElementById('waitingAsk').style.display    = isAskee ? 'none' : 'block';
+    // 回答済みリスト
+    const responseList = document.getElementById('responseList');
+    if (responseList) {
+      const entries = Object.entries(s.responses ?? {});
+      responseList.innerHTML = entries.length === 0 ? '' : entries.map(([name, choice]) =>
+        `<span class="response-badge ${choice === 'take' ? 'badge-take' : 'badge-pass'}">
+          ${name}：${choice === 'take' ? '🙋 もらう' : '🙅 いらん'}
+        </span>`
+      ).join('')
+    }
 
   } else if (s.phase === 'deciding' && amTurn) {
     phases.deciding.style.display = 'flex';
@@ -194,6 +204,16 @@ function showPhase(s, me) {
       msg = s.log[s.log.length - 1] ?? '';
     }
     document.getElementById('resultMsg').textContent = msg;
+    // 結果フェーズでも全員の回答を表示
+    const resultResponses = document.getElementById('resultResponses');
+    if (resultResponses) {
+      const entries = Object.entries(s.responses ?? {});
+      resultResponses.innerHTML = entries.map(([name, choice]) =>
+        `<span class="response-badge ${choice === 'take' ? 'badge-take' : 'badge-pass'}">
+          ${name}：${choice === 'take' ? '🙋 もらう' : '🙅 いらん'}
+        </span>`
+      ).join('');
+    }
     document.getElementById('nextTurnBtn').style.display   = amTurn ? 'block' : 'none';
     document.getElementById('waitingResult').style.display = amTurn ? 'none'  : 'block';
 

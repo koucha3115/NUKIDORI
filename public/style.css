@@ -247,3 +247,28 @@ input[type="text"]:focus { border-color: #f0c040; }
 }
 .modal-content h2 { font-size: 1.8rem; margin-bottom: 12px; color: #f0c040; }
 .modal-content p { margin-bottom: 16px; }
+
+/* 回答バッジ */
+.response-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  justify-content: center;
+}
+.response-badge {
+  font-size: 0.78rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: bold;
+}
+.badge-take {
+  background: #1a4a2a;
+  border: 1px solid #4caf50;
+  color: #a5d6a7;
+}
+.badge-pass {
+  background: #4a1a1a;
+  border: 1px solid #e57373;
+  color: #ef9a9a;
+}

@@ -231,6 +231,13 @@ function stateForPlayer(game, playerId, playerNames) {
     askIndex: game.askIndex,
     currentAskeeId: currentAskee(game),
     takerIds: game.takerIds,
+    // 誰がもらう/いらんを選択したか（全員に公開）
+    responses: Object.fromEntries(
+      Object.entries(game.responses).map(([id, choice]) => [
+        playerNames[id] ?? id,
+        choice,
+      ])
+    ),
     deckCount: game.deck.length,
     players: game.players.map(p => ({
       id: p.id,

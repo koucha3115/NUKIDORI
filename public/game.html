@@ -42,6 +42,7 @@
           <button id="passBtn" class="btn btn-secondary btn-large">いらん 🙅</button>
         </div>
         <p id="waitingAsk" class="hint" style="display:none">他のプレイヤーが回答中...</p>
+        <div id="responseList" class="response-list"></div>
       </div>
 
       <!-- deciding: 手番プレイヤーが「渡す or 自分で取る」を選ぶ -->
@@ -60,6 +61,7 @@
       <!-- result: 結果表示 → 次のターンへ（手番プレイヤーが押す） -->
       <div id="phaseResult" class="phase-block" style="display:none">
         <p class="phase-msg" id="resultMsg"></p>
+        <div id="resultResponses" class="response-list"></div>
         <button id="nextTurnBtn" class="btn btn-primary" style="display:none">次のターンへ →</button>
         <p id="waitingResult" class="hint" style="display:none">手番プレイヤーが次へ進めます...</p>
       </div>
