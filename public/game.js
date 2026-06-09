@@ -220,8 +220,11 @@ function showPhase(s, me) {
   } else {
     phases.waiting.style.display = 'flex';
     const turner = s.players.find(p => p.id === s.currentTurnId);
-    document.getElementById('waitingMsg').textContent =
-      turner ? `${turner.name} の手番です...` : '待機中...';
+    const turnerName = turner?.name ?? '？';
+    let waitMsg = `${turnerName} の手番です...`;
+    if (s.phase === 'deciding') waitMsg = `${turnerName} が渡す相手を選んでいます...`;
+    if (s.phase === 'pushing')  waitMsg = `${turnerName} が押し付け先を選んでいます...`;
+    document.getElementById('waitingMsg').textContent = waitMsg;
   }
 }
 

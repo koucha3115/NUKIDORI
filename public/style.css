@@ -164,6 +164,7 @@ input[type="text"]:focus { border-color: #f0c040; }
   line-height: 1;
 }
 .chip-unknown { color: #555; }
+.chip-vulture { border-color: #e85050; color: #e85050; }
 
 /* ===== 中央エリア ===== */
 .center-area {

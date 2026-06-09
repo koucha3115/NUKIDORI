@@ -74,10 +74,14 @@ io.on('connection', (socket) => {
     const player = room.game.players.find(p => p.id === oldId);
     if (player) player.id = socket.id;
 
-    // askOrder内のidも更新
+    // askOrder / takerIds / responses 内のidも更新
     room.game.askOrder = room.game.askOrder.map(id => id === oldId ? socket.id : id);
     if (room.game.takerIds) {
       room.game.takerIds = room.game.takerIds.map(id => id === oldId ? socket.id : id);
+    }
+    if (room.game.responses && room.game.responses[oldId] !== undefined) {
+      room.game.responses[socket.id] = room.game.responses[oldId];
+      delete room.game.responses[oldId];
     }
 
     socket.join(roomId);
