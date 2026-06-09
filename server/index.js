@@ -209,14 +209,19 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     for (const [roomId, room] of Object.entries(rooms)) {
       if (room.playerNames[socket.id]) {
-        delete room.playerNames[socket.id];
-        if (Object.keys(room.playerNames).length === 0) {
-          delete rooms[roomId];
+        if (room.game) {
+          // ゲーム中の切断はページ遷移の可能性があるので削除しない
+          // reconnectGame で再接続してもらう
         } else {
-          if (room.hostId === socket.id) {
-            room.hostId = Object.keys(room.playerNames)[0];
+          delete room.playerNames[socket.id];
+          if (Object.keys(room.playerNames).length === 0) {
+            delete rooms[roomId];
+          } else {
+            if (room.hostId === socket.id) {
+              room.hostId = Object.keys(room.playerNames)[0];
+            }
+            io.to(roomId).emit('roomUpdate', roomInfo(roomId));
           }
-          io.to(roomId).emit('roomUpdate', roomInfo(roomId));
         }
       }
     }

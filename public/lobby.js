@@ -57,7 +57,7 @@ function showWaiting(roomId) {
 }
 
 copyBtn.addEventListener('click', () => {
-  const url = `${location.origin}?room=${myRoomId}`;
+  const url = `${location.origin}/?room=${myRoomId}`;
   if (navigator.clipboard) {
     navigator.clipboard.writeText(url).then(() => {
       copyBtn.textContent = 'コピー済み！';
