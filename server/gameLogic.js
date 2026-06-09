@@ -244,10 +244,8 @@ function stateForPlayer(game, playerId, playerNames) {
       name: playerNames[p.id] ?? p.id,
       isMe: p.id === playerId,
       boardCount: p.boardCount,
-      // 自分の盤面は自分だけ見える。他人からは隠す
-      board: p.id === playerId
-        ? p.board.map(c => ({ id: c, name: cardName(c), emoji: cardEmoji(c) }))
-        : p.board.map(() => ({ id: 'unknown', name: '？', emoji: '❓' })),
+      // 全員の盤面を全員に公開
+      board: p.board.map(c => ({ id: c, name: cardName(c), emoji: cardEmoji(c) })),
       damage: p.damage,
       warning: p.damage >= 1,
     })),
