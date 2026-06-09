@@ -273,3 +273,19 @@ input[type="text"]:focus { border-color: #f0c040; }
   border: 1px solid #e57373;
   color: #ef9a9a;
 }
+
+/* デッキ残数 */
+.deck-breakdown-area {
+  padding: 6px 0 2px;
+}
+.deck-breakdown-label { font-size: 0.75rem; color: #888; margin-bottom: 4px; }
+.deck-breakdown { display: flex; flex-wrap: wrap; gap: 6px; }
+.deck-chip {
+  font-size: 0.78rem;
+  background: #0f0f23;
+  border: 1px solid #3a3a6a;
+  border-radius: 6px;
+  padding: 2px 8px;
+  color: #ccc;
+}
+.deck-chip.deck-empty { opacity: 0.3; }

@@ -157,10 +157,10 @@ function placeCard(game, toPlayerId, playerNames, revealToSelf) {
     resetOccurred,
   };
 
-  // 勝利判定（リセットなし + 5種類揃い）
+  // 勝利判定（リセットなし + 奇数枚の種類が5種類以上）
   if (!resetOccurred) {
-    const uniqueKinds = new Set(target.board.filter(c => ALL_BIRD_IDS.includes(c)));
-    if (uniqueKinds.size >= 5) {
+    const validKinds = countValidKinds(target.board);
+    if (validKinds >= 5) {
       game.phase = 'gameover';
       game.winner = toPlayerId;
       addLog(game, `🎉 ${toName} が5種類を揃えて勝利！`);
@@ -239,6 +239,11 @@ function stateForPlayer(game, playerId, playerNames) {
       ])
     ),
     deckCount: game.deck.length,
+    deckBreakdown: (() => {
+      const counts = {};
+      for (const c of game.deck) counts[c] = (counts[c] ?? 0) + 1;
+      return counts;
+    })(),
     players: game.players.map(p => ({
       id: p.id,
       name: playerNames[p.id] ?? p.id,
@@ -254,6 +259,15 @@ function stateForPlayer(game, playerId, playerNames) {
     winner: game.winner ?? null,
     winnerName: game.winner ? (playerNames[game.winner] ?? game.winner) : null,
   };
+}
+
+// 奇数枚持っている鳥の種類数（勝利カウント用）
+function countValidKinds(board) {
+  const counts = {};
+  for (const c of board) {
+    if (ALL_BIRD_IDS.includes(c)) counts[c] = (counts[c] ?? 0) + 1;
+  }
+  return Object.values(counts).filter(n => n % 2 === 1).length;
 }
 
 module.exports = {

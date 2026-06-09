@@ -46,6 +46,21 @@ socket.on('gameState', (state) => {
 function render(s) {
   deckInfo.textContent = `山札: ${s.deckCount} 枚`;
 
+  // デッキ残数内訳
+  const deckBreakEl = document.getElementById('deckBreakdown');
+  if (deckBreakEl && s.deckBreakdown) {
+    const CARD_DEF = [
+      { id: 'sparrow', emoji: '🐦' }, { id: 'crow',    emoji: '🐧' },
+      { id: 'owl',     emoji: '🦉' }, { id: 'hawk',    emoji: '🦅' },
+      { id: 'peacock', emoji: '🦚' }, { id: 'phoenix', emoji: '🔥' },
+      { id: 'vulture', emoji: '💀' },
+    ];
+    deckBreakEl.innerHTML = CARD_DEF.map(c => {
+      const n = s.deckBreakdown[c.id] ?? 0;
+      return `<span class="deck-chip ${n === 0 ? 'deck-empty' : ''}">${c.emoji}×${n}</span>`;
+    }).join('');
+  }
+
   const me = s.players.find(p => p.isMe);
   isHost = s.players[0]?.name === myName;
 
