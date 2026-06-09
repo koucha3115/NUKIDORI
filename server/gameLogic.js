@@ -157,13 +157,13 @@ function placeCard(game, toPlayerId, playerNames, revealToSelf) {
     resetOccurred,
   };
 
-  // 勝利判定（リセットなし + 6種類揃い）
+  // 勝利判定（リセットなし + 5種類揃い）
   if (!resetOccurred) {
     const uniqueKinds = new Set(target.board.filter(c => ALL_BIRD_IDS.includes(c)));
-    if (uniqueKinds.size >= 6) {
+    if (uniqueKinds.size >= 5) {
       game.phase = 'gameover';
       game.winner = toPlayerId;
-      addLog(game, `🎉 ${toName} が6種類を揃えて勝利！`);
+      addLog(game, `🎉 ${toName} が5種類を揃えて勝利！`);
     }
   }
 
@@ -237,10 +237,10 @@ function stateForPlayer(game, playerId, playerNames) {
       name: playerNames[p.id] ?? p.id,
       isMe: p.id === playerId,
       boardCount: p.boardCount,
-      // 自分の盤面は隠す
+      // 自分の盤面は自分だけ見える。他人からは隠す
       board: p.id === playerId
-        ? p.board.map(() => ({ id: 'unknown', name: '？', emoji: '❓' }))
-        : p.board.map(c => ({ id: c, name: cardName(c), emoji: cardEmoji(c) })),
+        ? p.board.map(c => ({ id: c, name: cardName(c), emoji: cardEmoji(c) }))
+        : p.board.map(() => ({ id: 'unknown', name: '？', emoji: '❓' })),
       damage: p.damage,
       warning: p.damage >= 1,
     })),

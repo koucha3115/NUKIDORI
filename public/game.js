@@ -59,9 +59,8 @@ function render(s) {
       const hearts = ['🩶','🩶','🩶'].map((_, i) => i < me.damage ? '💔' : '🩶').join(' ');
       dmgEl.textContent = `ダメージ: ${hearts}`;
     }
-    myBoard.innerHTML = me.board.map(() =>
-      `<span class="chip chip-unknown" title="自分の盤面は見えません">❓</span>`
-    ).join('') || '<span style="color:#555; font-size:0.8rem">（まだ鳥がいません）</span>';
+    myBoard.innerHTML = me.board.map(c => chipHTML(c)).join('')
+      || '<span style="color:#555; font-size:0.8rem">（まだ鳥がいません）</span>';
   }
 
   if (s.drawnCard) {
@@ -108,6 +107,7 @@ function renderOthers(s) {
       p.warning ? `<span class="warning-badge">💔×${p.damage}</span>` : '',
     ].join('');
 
+    // 他人の盤面は隠されている（サーバーが ? を返す）
     const chips = p.board.map(c => chipHTML(c)).join('')
       || '<span style="color:#555">（なし）</span>';
 
@@ -209,7 +209,7 @@ function showGameover(s) {
   gameoverModal.style.display = 'flex';
   const iWon = s.players.find(p => p.isMe)?.name === s.winnerName;
   gameoverTitle.textContent = iWon ? '🎉 あなたの勝利！' : `${s.winnerName} の勝利！`;
-  gameoverMsg.textContent   = '6種類の鳥を集めました！';
+  gameoverMsg.textContent   = '5種類の鳥を集めました！';
   restartBtn.style.display  = isHost ? 'block' : 'none';
   waitRestart.style.display = isHost ? 'none'  : 'block';
 }
