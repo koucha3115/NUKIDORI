@@ -57,6 +57,34 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('roomUpdate', roomInfo(roomId));
   });
 
+  // ゲーム画面への遷移後の再接続（ページ遷移でsocket.idが変わるため）
+  socket.on('reconnectGame', ({ roomId, name }, cb) => {
+    const room = rooms[roomId];
+    if (!room?.game) return cb({ error: 'ゲームが見つかりません' });
+
+    // 同名プレイヤーの旧socket.idを探して新しいidに付け替える
+    const oldId = Object.entries(room.playerNames).find(([, n]) => n === name)?.[0];
+    if (!oldId) return cb({ error: 'プレイヤーが見つかりません' });
+
+    room.playerNames[socket.id] = name;
+    delete room.playerNames[oldId];
+
+    if (room.hostId === oldId) room.hostId = socket.id;
+
+    const player = room.game.players.find(p => p.id === oldId);
+    if (player) player.id = socket.id;
+
+    // askOrder内のidも更新
+    room.game.askOrder = room.game.askOrder.map(id => id === oldId ? socket.id : id);
+    if (room.game.takerIds) {
+      room.game.takerIds = room.game.takerIds.map(id => id === oldId ? socket.id : id);
+    }
+
+    socket.join(roomId);
+    cb({ ok: true });
+    broadcast(roomId);
+  });
+
   // ゲーム開始（ホストのみ）
   socket.on('startGame', () => {
     const roomId = getRoomId(socket);

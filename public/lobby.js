@@ -58,11 +58,28 @@ function showWaiting(roomId) {
 
 copyBtn.addEventListener('click', () => {
   const url = `${location.origin}?room=${myRoomId}`;
-  navigator.clipboard.writeText(url).then(() => {
-    copyBtn.textContent = 'コピー済み！';
-    setTimeout(() => copyBtn.textContent = 'コピー', 1500);
-  });
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      copyBtn.textContent = 'コピー済み！';
+      setTimeout(() => copyBtn.textContent = 'コピー', 1500);
+    }).catch(() => fallbackCopy(url));
+  } else {
+    fallbackCopy(url);
+  }
 });
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand('copy');
+  document.body.removeChild(ta);
+  copyBtn.textContent = 'コピー済み！';
+  setTimeout(() => copyBtn.textContent = 'コピー', 1500);
+}
 
 startBtn.addEventListener('click', () => {
   socket.emit('startGame');

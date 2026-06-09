@@ -7,6 +7,7 @@ if (!roomId) { location.href = '/'; }
 
 // DOM
 const deckInfo       = document.getElementById('deckInfo');
+
 const othersArea     = document.getElementById('othersArea');
 const drawnCardDisplay = document.getElementById('drawnCardDisplay');
 const drawnCardEl    = document.getElementById('drawnCard');
@@ -35,10 +36,9 @@ let myId = socket.id;
 let isHost = false;
 let lastState = null;
 
-// ===== サーバーへの再接続後にルーム再参加 =====
-socket.emit('joinRoom', { roomId, name: myName }, ({ error }) => {
+// ===== ゲーム画面ではreconnectGameで再接続（ページ遷移でsocket.idが変わるため）=====
+socket.emit('reconnectGame', { roomId, name: myName }, ({ ok, error }) => {
   if (error) {
-    // ルームが存在しない場合はロビーへ戻る
     location.href = '/';
   }
 });
