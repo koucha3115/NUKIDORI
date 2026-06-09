@@ -145,7 +145,7 @@ io.on('connection', (socket) => {
     if (room.game.phase !== 'deciding') return;
     const turner = room.game.players[room.game.currentTurn];
     if (turner.id !== socket.id) return;
-    giveCard(room.game, toPlayerId);
+    giveCard(room.game, toPlayerId, room.playerNames);
     broadcast(roomId);
   });
 
@@ -157,7 +157,7 @@ io.on('connection', (socket) => {
     if (room.game.phase !== 'deciding') return;
     const turner = room.game.players[room.game.currentTurn];
     if (turner.id !== socket.id) return;
-    takeCardSelf(room.game);
+    takeCardSelf(room.game, room.playerNames);
     broadcast(roomId);
   });
 
@@ -169,7 +169,7 @@ io.on('connection', (socket) => {
     if (room.game.phase !== 'pushing') return;
     const turner = room.game.players[room.game.currentTurn];
     if (turner.id !== socket.id) return;
-    pushCard(room.game, toPlayerId);
+    pushCard(room.game, toPlayerId, room.playerNames);
     broadcast(roomId);
   });
 
@@ -190,7 +190,7 @@ io.on('connection', (socket) => {
     const roomId = getRoomId(socket);
     const room = rooms[roomId];
     if (!room?.game || room.hostId !== socket.id) return;
-    forceEndCheck(room.game);
+    forceEndCheck(room.game, room.playerNames);
     broadcast(roomId);
   });
 

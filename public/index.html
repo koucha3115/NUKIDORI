@@ -35,10 +35,13 @@
     <div id="waitingRoom" style="display:none">
       <div class="card-box">
         <h2>待機室</h2>
-        <p>ルームID：<strong id="displayRoomId"></strong>
-          <button id="copyBtn" class="btn btn-tiny">コピー</button>
-        </p>
-        <p class="hint">このURLまたはルームIDを友達に教えてください</p>
+        <p>ルームID：<strong id="displayRoomId"></strong></p>
+        <p class="hint">下のURLを友達に送ってください：</p>
+        <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+          <input type="text" id="shareUrl" readonly style="font-size:0.8rem; color:#f0c040; cursor:pointer;"
+                 onclick="this.select()" placeholder="URL生成中...">
+          <button id="copyBtn" class="btn btn-tiny" style="flex:0; white-space:nowrap;">コピー</button>
+        </div>
         <ul id="playerList" class="player-list"></ul>
         <button id="startBtn" class="btn btn-primary" style="display:none">ゲームスタート（3人以上）</button>
         <p id="waitMsg" class="hint">ホストがゲームを開始するまで待ってください</p>

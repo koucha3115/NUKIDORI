@@ -7,13 +7,13 @@ const joinBtn         = document.getElementById('joinBtn');
 const lobbyError      = document.getElementById('lobbyError');
 const waitingRoom     = document.getElementById('waitingRoom');
 const displayRoomId   = document.getElementById('displayRoomId');
+const shareUrl        = document.getElementById('shareUrl');
 const copyBtn         = document.getElementById('copyBtn');
 const playerList      = document.getElementById('playerList');
 const startBtn        = document.getElementById('startBtn');
 const waitMsg         = document.getElementById('waitMsg');
 
 let myRoomId = null;
-let amHost   = false;
 
 function showError(msg) {
   lobbyError.textContent = msg;
@@ -32,7 +32,6 @@ createBtn.addEventListener('click', () => {
   socket.emit('createRoom', { name }, ({ roomId, error }) => {
     if (error) return showError(error);
     myRoomId = roomId;
-    amHost = true;
     showWaiting(roomId);
   });
 });
@@ -45,7 +44,6 @@ joinBtn.addEventListener('click', () => {
   socket.emit('joinRoom', { roomId, name }, ({ roomId: rid, error }) => {
     if (error) return showError(error);
     myRoomId = rid;
-    amHost = false;
     showWaiting(rid);
   });
 });
@@ -54,31 +52,42 @@ function showWaiting(roomId) {
   lobbyError.style.display = 'none';
   waitingRoom.style.display = 'block';
   displayRoomId.textContent = roomId;
+  const url = `${location.origin}/?room=${roomId}`;
+  shareUrl.value = url;
 }
 
 copyBtn.addEventListener('click', () => {
-  const url = `${location.origin}/?room=${myRoomId}`;
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(url).then(() => {
-      copyBtn.textContent = 'コピー済み！';
-      setTimeout(() => copyBtn.textContent = 'コピー', 1500);
-    }).catch(() => fallbackCopy(url));
+  const url = shareUrl.value;
+  if (!url) return;
+
+  // まずinputを選択状態にして視覚フィードバック
+  shareUrl.select();
+  shareUrl.setSelectionRange(0, 99999);
+
+  // clipboard API を試す
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url)
+      .then(() => showCopied())
+      .catch(() => legacyCopy());
   } else {
-    fallbackCopy(url);
+    legacyCopy();
   }
 });
 
-function fallbackCopy(text) {
-  const ta = document.createElement('textarea');
-  ta.value = text;
-  ta.style.position = 'fixed';
-  ta.style.opacity = '0';
-  document.body.appendChild(ta);
-  ta.select();
-  document.execCommand('copy');
-  document.body.removeChild(ta);
-  copyBtn.textContent = 'コピー済み！';
-  setTimeout(() => copyBtn.textContent = 'コピー', 1500);
+function legacyCopy() {
+  try {
+    document.execCommand('copy');
+    showCopied();
+  } catch (e) {
+    // 手動コピーを促す
+    copyBtn.textContent = '手動でコピーしてください';
+    setTimeout(() => copyBtn.textContent = 'コピー', 3000);
+  }
+}
+
+function showCopied() {
+  copyBtn.textContent = '✅ コピー済み！';
+  setTimeout(() => copyBtn.textContent = 'コピー', 2000);
 }
 
 startBtn.addEventListener('click', () => {
@@ -92,10 +101,10 @@ socket.on('roomUpdate', ({ players, started }) => {
     li.innerHTML = `${p.isHost ? '<span class="host-badge">HOST</span>' : ''} ${p.name}`;
     playerList.appendChild(li);
   });
-  const isHost = players.find(p => p.id === socket.id)?.isHost ?? false;
-  amHost = isHost;
+  const me = players.find(p => p.id === socket.id);
+  const isHost = me?.isHost ?? false;
   startBtn.style.display = isHost ? 'block' : 'none';
-  waitMsg.style.display  = isHost ? 'none' : 'block';
+  waitMsg.style.display  = isHost ? 'none'  : 'block';
   startBtn.disabled = players.length < 3;
   if (started) goToGame();
 });
@@ -103,7 +112,6 @@ socket.on('roomUpdate', ({ players, started }) => {
 socket.on('gameState', () => goToGame());
 
 function goToGame() {
-  // 名前をsessionStorageに保存してゲーム画面へ
   sessionStorage.setItem('playerName', playerNameInput.value.trim());
   sessionStorage.setItem('roomId', myRoomId);
   location.href = 'game.html';

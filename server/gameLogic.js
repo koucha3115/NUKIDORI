@@ -32,19 +32,20 @@ function createGame(playerIds) {
   return {
     players: playerIds.map(id => ({
       id,
-      board: [],      // 盤面のカードID配列（本人には送らない）
-      boardCount: 0,  // 枚数（本人にも送る）
+      board: [],
+      boardCount: 0,
     })),
     deck: buildDeck(),
     discardPile: [],
-    phase: 'waiting',   // waiting | drawing | asking | deciding | pushing | result
-    currentTurn: 0,     // players配列のindex
-    drawnCard: null,    // 今掲げているカードID
-    askOrder: [],       // 聞く順番（playerIdの配列）
-    askIndex: 0,        // 今何人目に聞いているか
-    responses: {},      // { playerId: 'take' | 'pass' }
-    takerIds: [],       // 「もらう」と言ったplayerIdリスト
+    phase: 'waiting',
+    currentTurn: 0,
+    drawnCard: null,
+    askOrder: [],
+    askIndex: 0,
+    responses: {},
+    takerIds: [],
     log: [],
+    lastResult: null, // { cardId, cardName, cardEmoji, toName, exploded }
   };
 }
 
@@ -57,7 +58,6 @@ function drawCard(game) {
   game.phase = 'asking';
   game.responses = {};
   game.takerIds = [];
-  // 聞く順番は現在の手番プレイヤーが決める（初期値：時計回り）
   const others = game.players
     .filter(p => p.id !== game.players[game.currentTurn].id)
     .map(p => p.id);
@@ -66,13 +66,11 @@ function drawCard(game) {
   return game;
 }
 
-// 現在聞かれているプレイヤーID
 function currentAskee(game) {
   return game.askOrder[game.askIndex] ?? null;
 }
 
 function respond(game, playerId, choice) {
-  // choice: 'take' | 'pass'
   game.responses[playerId] = choice;
   if (choice === 'take') {
     game.takerIds.push(playerId);
@@ -80,56 +78,48 @@ function respond(game, playerId, choice) {
   game.askIndex++;
 
   if (game.askIndex >= game.askOrder.length) {
-    // 全員に聞き終わった
     if (game.takerIds.length > 0) {
-      // 「もらう」と言った人がいる → 手番プレイヤーが渡すか取るか決める
       game.phase = 'deciding';
     } else {
-      // 全員「いらん」→ 押し付けフェーズ
       game.phase = 'pushing';
     }
   }
   return game;
 }
 
-// 手番プレイヤーが「渡す」を選択
-function giveCard(game, toPlayerId) {
-  return placeCard(game, toPlayerId);
+function giveCard(game, toPlayerId, playerNames) {
+  return placeCard(game, toPlayerId, playerNames);
 }
 
-// 手番プレイヤーが「自分で取る」を選択
-function takeCardSelf(game) {
+function takeCardSelf(game, playerNames) {
   const currentPlayer = game.players[game.currentTurn];
-  return placeCard(game, currentPlayer.id);
+  return placeCard(game, currentPlayer.id, playerNames);
 }
 
-// 全員いらんで押し付け
-function pushCard(game, toPlayerId) {
-  return placeCard(game, toPlayerId);
+function pushCard(game, toPlayerId, playerNames) {
+  return placeCard(game, toPlayerId, playerNames);
 }
 
-function placeCard(game, toPlayerId) {
+function placeCard(game, toPlayerId, playerNames) {
   const target = game.players.find(p => p.id === toPlayerId);
   const card = game.drawnCard;
+  const toName = (playerNames && playerNames[toPlayerId]) ?? toPlayerId;
 
-  addLog(game, `カード「${cardName(card)}」が ${playerName(game, toPlayerId)} の盤面へ`);
+  addLog(game, `${cardEmoji(card)}${cardName(card)} が ${toName} の盤面へ`);
 
-  // 爆発判定
   let exploded = false;
   if (card === 'vulture') {
-    // ハゲタカ → 即爆発
     exploded = true;
     game.discardPile.push(card);
-    addLog(game, `⚠️ ハゲタカ！ ${playerName(game, toPlayerId)} の盤面がリセット！`);
+    addLog(game, `💀 ハゲタカ！ ${toName} の盤面がリセット！`);
     resetBoard(game, target);
   } else {
     target.board.push(card);
     target.boardCount = target.board.length;
     const sameCount = target.board.filter(c => c === card).length;
     if (sameCount >= 3) {
-      // 3羽 → 爆発
       exploded = true;
-      addLog(game, `💥 ${cardName(card)} が3羽！ ${playerName(game, toPlayerId)} の盤面がリセット！`);
+      addLog(game, `💥 ${cardName(card)} が3羽！ ${toName} の盤面がリセット！`);
       game.discardPile.push(...target.board);
       resetBoard(game, target);
     }
@@ -137,14 +127,21 @@ function placeCard(game, toPlayerId) {
 
   game.drawnCard = null;
   game.phase = 'result';
+  game.lastResult = {
+    cardId: card,
+    cardName: cardName(card),
+    cardEmoji: cardEmoji(card),
+    toId: toPlayerId,
+    toName,
+    exploded,
+  };
 
-  // 勝利チェック
   if (!exploded) {
     const uniqueKinds = new Set(target.board.filter(c => ALL_BIRD_IDS.includes(c)));
     if (uniqueKinds.size >= 6) {
       game.phase = 'gameover';
       game.winner = toPlayerId;
-      addLog(game, `🎉 ${playerName(game, toPlayerId)} が6種類を揃えて勝利！`);
+      addLog(game, `🎉 ${toName} が6種類を揃えて勝利！`);
       return game;
     }
   }
@@ -158,7 +155,6 @@ function resetBoard(game, player) {
 }
 
 function nextTurn(game) {
-  // 次のプレイヤーへ（時計回り）
   game.currentTurn = (game.currentTurn + 1) % game.players.length;
   game.phase = 'drawing';
   game.drawnCard = null;
@@ -166,11 +162,11 @@ function nextTurn(game) {
   game.askIndex = 0;
   game.responses = {};
   game.takerIds = [];
+  game.lastResult = null;
   return game;
 }
 
-// 山札切れ膠着時の強制終了判定
-function forceEndCheck(game) {
+function forceEndCheck(game, playerNames) {
   let best = null;
   let bestCount = -1;
   for (const p of game.players) {
@@ -182,7 +178,8 @@ function forceEndCheck(game) {
   }
   game.winner = best;
   game.phase = 'gameover';
-  addLog(game, `ゲーム終了！ ${playerName(game, best)} が最多${bestCount}種類で勝利！`);
+  const bestName = (playerNames && playerNames[best]) ?? best;
+  addLog(game, `ゲーム終了！ ${bestName} が最多${bestCount}種類で勝利！`);
   return game;
 }
 
@@ -196,22 +193,16 @@ function cardEmoji(cardId) {
   return BIRDS.find(b => b.id === cardId)?.emoji ?? '?';
 }
 
-function playerName(game, playerId) {
-  return playerId; // ルーム管理側で名前を持つ
-}
-
 function addLog(game, msg) {
   game.log.push(msg);
   if (game.log.length > 30) game.log.shift();
 }
 
-// クライアントに送る状態（プレイヤーごとに自分の盤面の中身を隠す）
 function stateForPlayer(game, playerId, playerNames) {
   return {
     phase: game.phase,
     currentTurnId: game.players[game.currentTurn]?.id,
     drawnCard: (() => {
-      // 引いた本人には種類を隠す
       const turner = game.players[game.currentTurn];
       if (!game.drawnCard) return null;
       if (turner?.id === playerId) return { id: 'unknown', name: '？', emoji: '❓' };
@@ -227,14 +218,13 @@ function stateForPlayer(game, playerId, playerNames) {
       name: playerNames[p.id] ?? p.id,
       isMe: p.id === playerId,
       boardCount: p.boardCount,
-      // 自分の盤面は中身を隠す
       board: p.id === playerId
         ? p.board.map(() => ({ id: 'unknown', name: '？', emoji: '❓' }))
         : p.board.map(c => ({ id: c, name: cardName(c), emoji: cardEmoji(c) })),
-      // 危険状態チェック（自分の盤面も他者から見えるので計算はサーバー側）
       warning: hasWarning(p.board),
     })),
     log: game.log,
+    lastResult: game.lastResult,
     winner: game.winner ?? null,
     winnerName: game.winner ? (playerNames[game.winner] ?? game.winner) : null,
   };
